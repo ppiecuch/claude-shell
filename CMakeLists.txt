@@ -17,6 +17,7 @@ foreach(_line IN LISTS _build_info_lines)
         set(APP_BUILD_NUMBER "${CMAKE_MATCH_1}")
     endif()
 endforeach()
+set(APP_BUNDLE_ID "com.komsoft.claude-shell")
 message(STATUS "Claude Shell ${APP_VERSION} (build ${APP_BUILD_NUMBER})")
 
 # --- FLTK (static, pre-built) ---
@@ -83,11 +84,12 @@ if(APPLE)
     endif()
 
     set_target_properties(claude-shell PROPERTIES
+        OUTPUT_NAME "ClaudeShell"
         MACOSX_BUNDLE TRUE
         MACOSX_BUNDLE_BUNDLE_NAME "Claude Shell"
         MACOSX_BUNDLE_BUNDLE_VERSION "${APP_BUILD_NUMBER}"
         MACOSX_BUNDLE_SHORT_VERSION_STRING "${APP_VERSION}"
-        MACOSX_BUNDLE_GUI_IDENTIFIER "com.komsoft.claude-shell"
+        MACOSX_BUNDLE_GUI_IDENTIFIER "${APP_BUNDLE_ID}"
         MACOSX_BUNDLE_ICON_FILE "icon.icns"
         MACOSX_BUNDLE_COPYRIGHT "Copyright © 2026 KomSoft Oprogramowanie"
         MACOSX_BUNDLE_INFO_STRING "Claude Shell — Claude session sharing manager v${APP_VERSION}"
@@ -105,19 +107,64 @@ if(APPLE)
         COMMENT "Copying Credits.rtf to bundle"
     )
 
-    # Post-build: install Help Book and generate help index
+    # Help Book — generated whenever any input changes (template, css,
+    # images, build.info, configure script). A stamp file drives the
+    # dependency tracking so plain `cmake --build` regenerates correctly.
     # CFBundleHelpBookFolder = "HelpDocs" — macOS resolves via English.lproj/
     set(HELP_SRC "${CMAKE_SOURCE_DIR}/Resources/English.lproj/HelpDocs")
     set(HELP_DST "$<TARGET_BUNDLE_DIR:claude-shell>/Contents/Resources/English.lproj/HelpDocs")
-    add_custom_command(TARGET claude-shell POST_BUILD
+    set(HELP_STAMP "${CMAKE_BINARY_DIR}/CMakeFiles/help.stamp")
+    set(LSREGISTER "/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/LaunchServices.framework/Versions/A/Support/lsregister")
+
+    add_custom_command(
+        OUTPUT "${HELP_STAMP}"
         COMMAND ${CMAKE_COMMAND} -E make_directory "${HELP_DST}"
+        COMMAND ${CMAKE_COMMAND}
+            -DAPP_VERSION=${APP_VERSION}
+            -DAPP_BUILD_NUMBER=${APP_BUILD_NUMBER}
+            -DTEMPLATE_IN=${HELP_SRC}/index.html.in
+            -DTEMPLATE_OUT=${HELP_DST}/index.html
+            -P ${CMAKE_SOURCE_DIR}/cmake/configure-help.cmake
         COMMAND ${CMAKE_COMMAND} -E copy
-            "${HELP_SRC}/index.html" "${HELP_SRC}/style.css"
+            "${HELP_SRC}/style.css"
+            "${HELP_SRC}/logo.png"
+            "${HELP_SRC}/komsoft.png"
             "${HELP_DST}/"
         COMMAND hiutil -Caf
             "${HELP_DST}/HelpDocs.helpindex"
             "${HELP_DST}"
-        COMMENT "Installing Help Book and generating help index"
+        # Refresh macOS Help Viewer so it picks up the new content.
+        # helpd caches help books in memory keyed by CFBundleHelpBookName,
+        # so re-registering with lsregister alone is not enough — helpd
+        # must be killed (it auto-respawns) and any open Help Viewer
+        # window closed. Failures are non-fatal.
+        COMMAND ${CMAKE_COMMAND} -E touch "$<TARGET_BUNDLE_DIR:claude-shell>"
+        COMMAND sh -c "'${LSREGISTER}' -f '$<TARGET_BUNDLE_DIR:claude-shell>' >/dev/null 2>&1 || true"
+        COMMAND sh -c "killall -9 helpd 'Help Viewer' >/dev/null 2>&1 || true"
+        COMMAND sh -c "rm -rf \"$ENV{HOME}/Library/Caches/com.apple.help\"* \"$ENV{HOME}/Library/Caches/com.apple.helpd\" \"$ENV{HOME}/Library/HTTPStorages/com.apple.helpd\" \"$ENV{HOME}/Library/Group Containers/group.com.apple.helpviewer.content/Library/Caches/${APP_BUNDLE_ID}.\"*.help 2>/dev/null || true"
+        COMMAND ${CMAKE_COMMAND} -E touch "${HELP_STAMP}"
+        DEPENDS
+            "${HELP_SRC}/index.html.in"
+            "${HELP_SRC}/style.css"
+            "${HELP_SRC}/logo.png"
+            "${HELP_SRC}/komsoft.png"
+            "${CMAKE_SOURCE_DIR}/build.info"
+            "${CMAKE_SOURCE_DIR}/cmake/configure-help.cmake"
+        COMMENT "Installing Help Book and refreshing macOS Help cache"
+        VERBATIM
+    )
+
+    add_custom_target(claude-shell-help ALL DEPENDS "${HELP_STAMP}")
+    add_dependencies(claude-shell-help claude-shell)
+
+    # Manual full-refresh target (also unregisters stale bundle paths
+    # left by Xcode archives etc.):  cmake --build build --target help-refresh
+    add_custom_target(help-refresh
+        COMMAND "${CMAKE_SOURCE_DIR}/_scripts/refresh-help.sh"
+            "$<TARGET_BUNDLE_DIR:claude-shell>"
+        DEPENDS claude-shell-help
+        COMMENT "Forcing full Help Viewer cache refresh"
+        VERBATIM
     )
 
     # Compile definitions for version info and incbin paths

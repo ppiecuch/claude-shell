@@ -124,10 +124,10 @@ xcodebuild \
 
 # Generate dSYM if missing
 DSYM_DIR="$ARCHIVE_PATH/dSYMs"
-APP_BINARY="$ARCHIVE_PATH/Products/Applications/claude-shell.app/Contents/MacOS/claude-shell"
+APP_BINARY="$ARCHIVE_PATH/Products/Applications/ClaudeShell.app/Contents/MacOS/ClaudeShell"
 if [ -z "$(ls -A "$DSYM_DIR" 2>/dev/null)" ] && [ -f "$APP_BINARY" ]; then
     echo "--- Generating dSYM ---"
-    dsymutil "$APP_BINARY" -o "$DSYM_DIR/claude-shell.app.dSYM"
+    dsymutil "$APP_BINARY" -o "$DSYM_DIR/ClaudeShell.app.dSYM"
 fi
 
 echo ""
@@ -196,7 +196,7 @@ PLIST
     echo "Location: $EXPORT_DIR"
     echo ""
     echo "To upload to App Store Connect:"
-    echo "  xcrun altool --upload-app -f \"$EXPORT_DIR/claude-shell.pkg\" -t macos --apiKey KEY --apiIssuer ISSUER"
+    echo "  xcrun altool --upload-app -f \"$EXPORT_DIR/ClaudeShell.pkg\" -t macos --apiKey KEY --apiIssuer ISSUER"
     echo "  OR drag into Transporter.app"
 fi
 

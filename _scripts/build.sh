@@ -54,4 +54,4 @@ cmake --build "$BUILD_DIR" -j$(sysctl -n hw.ncpu 2>/dev/null || echo 4)
 
 echo ""
 echo "=== Build complete ==="
-echo "Binary: $BUILD_DIR/claude-shell.app"
+echo "Binary: $BUILD_DIR/ClaudeShell.app"

@@ -1,89 +1,326 @@
-body {
-    font-family: -apple-system, "Lucida Grande", "Helvetica Neue", Verdana, sans-serif;
-    font-size: 13px;
-    line-height: 1.5;
-    color: #333;
+/* Claude Shell Help — elegant, restrained typography. */
+
+:root {
+    --fg: #1d1d1f;
+    --fg-soft: #4a4a4f;
+    --fg-faint: #6e6e73;
+    --bg: #ffffff;
+    --bg-soft: #fafafa;
+    --bg-hero: linear-gradient(135deg, #f5f7fa 0%, #eef1f6 100%);
+    --rule: #e5e5ea;
+    --accent: #0066cc;
+    --accent-soft: #e8f0fc;
+    --ok: #1f883d;
+    --bad: #c0392b;
+    --warn: #b7791f;
+    --code-bg: #f4f5f7;
 }
 
-.padded {
-    max-width: 700px;
-    margin: 20px auto;
-    padding: 0 20px;
+* { box-sizing: border-box; }
+
+html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text",
+                 "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
 }
 
-h1 {
-    font-size: 22px;
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* --- Hero header --- */
+/* Uses a table so logo and text stay side-by-side at any width
+   (Help Viewer windows can be very narrow). */
+
+.hero {
+    background: var(--bg-hero);
+    border-bottom: 1px solid var(--rule);
+    padding: 28px 40px;
+}
+
+.hero-table {
+    width: 100%;
+    border: none;
+    border-radius: 0;
+    overflow: visible;
+    margin: 0;
+    font-size: inherit;
+}
+.hero-table td { border: none; background: transparent; padding: 0; }
+
+.hero-logo-cell {
+    width: 96px;
+    vertical-align: middle;
+    padding-right: 24px !important;
+}
+
+.hero-text-cell { vertical-align: middle; }
+
+.hero-logo {
+    width: 72px;
+    height: 72px;
+    border-radius: 14px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    display: block;
+}
+
+.hero h1 {
+    margin: 0 0 4px 0;
+    font-size: 28px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
     color: #111;
-    border-bottom: 1px solid #ddd;
-    padding-bottom: 8px;
 }
+
+.tagline {
+    margin: 0 0 10px 0;
+    color: var(--fg-soft);
+    font-size: 15px;
+}
+
+.meta { margin: 0; }
+
+.badge {
+    display: inline-block;
+    padding: 2px 9px;
+    margin-right: 6px;
+    border-radius: 10px;
+    background: rgba(0, 102, 204, 0.10);
+    color: var(--accent);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+}
+
+/* --- Main content --- */
+
+.content {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 24px 40px 40px 40px;
+}
+
+section {
+    padding: 18px 0;
+    border-bottom: 1px solid var(--rule);
+}
+section:last-child { border-bottom: none; }
 
 h2 {
-    font-size: 17px;
-    color: #222;
-    margin-top: 24px;
+    font-size: 20px;
+    font-weight: 600;
+    margin: 8px 0 10px 0;
+    color: #111;
+    letter-spacing: -0.005em;
 }
 
 h3 {
     font-size: 14px;
-    color: #444;
-    margin-top: 16px;
+    font-weight: 600;
+    margin: 18px 0 6px 0;
+    color: var(--fg);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
 }
 
-a {
-    color: #0066cc;
-    text-decoration: none;
+p { margin: 8px 0; color: var(--fg-soft); }
+
+ul, ol { padding-left: 22px; margin: 8px 0; color: var(--fg-soft); }
+li { margin: 3px 0; }
+li strong { color: var(--fg); }
+
+/* --- Table of contents --- */
+
+.toc {
+    background: var(--bg-soft);
+    border: 1px solid var(--rule);
+    border-radius: 8px;
+    padding: 14px 18px;
+    margin-bottom: 8px;
+    font-size: 13px;
 }
 
-a:hover {
-    text-decoration: underline;
+.toc strong {
+    display: block;
+    margin-bottom: 6px;
+    color: var(--fg-faint);
+    text-transform: uppercase;
+    font-size: 11px;
+    letter-spacing: 0.08em;
 }
 
-code {
-    font-family: Menlo, Monaco, "Courier New", monospace;
+.toc ol {
+    margin: 0;
+    padding-left: 0;
+    list-style: none;
+    columns: 2;
+    column-gap: 24px;
+}
+.toc li { margin: 2px 0; }
+
+/* --- Steps list --- */
+
+ol.steps { counter-reset: step; padding-left: 0; list-style: none; }
+ol.steps li {
+    counter-increment: step;
+    position: relative;
+    padding: 6px 0 6px 36px;
+    color: var(--fg-soft);
+}
+ol.steps li::before {
+    content: counter(step);
+    position: absolute;
+    left: 0; top: 6px;
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #fff;
+    font-weight: 600;
     font-size: 12px;
-    background: #f4f4f4;
-    padding: 2px 5px;
-    border-radius: 3px;
+    text-align: center;
+    line-height: 24px;
 }
+
+/* --- Tables --- */
 
 table {
     width: 100%;
     border-collapse: collapse;
-    margin: 12px 0;
+    margin: 10px 0;
+    font-size: 13px;
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    overflow: hidden;
 }
 
 th, td {
     text-align: left;
-    padding: 6px 10px;
-    border: 1px solid #ddd;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--rule);
+    vertical-align: top;
 }
+tr:last-child td { border-bottom: none; }
 
 th {
-    background: #f0f0f0;
-    font-weight: bold;
+    background: var(--bg-soft);
+    color: var(--fg);
+    font-weight: 600;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
 }
 
-ul {
-    padding-left: 20px;
+/* --- Code & key caps --- */
+
+code {
+    font-family: "SF Mono", Menlo, Monaco, Consolas, monospace;
+    font-size: 12.5px;
+    background: var(--code-bg);
+    padding: 1px 6px;
+    border-radius: 4px;
+    color: #333;
 }
 
-li {
-    margin: 4px 0;
+kbd {
+    font-family: -apple-system, sans-serif;
+    font-size: 11px;
+    padding: 1px 6px;
+    border: 1px solid #c8c8cc;
+    border-bottom-width: 2px;
+    border-radius: 4px;
+    background: #fff;
+    color: var(--fg);
+    white-space: nowrap;
 }
 
-.note {
-    background: #fff8dc;
-    border-left: 4px solid #e6c200;
-    padding: 10px 14px;
-    margin: 12px 0;
-    border-radius: 2px;
+/* --- Status pills --- */
+
+em.ok   { font-style: normal; color: var(--ok);   font-weight: 600; }
+em.bad  { font-style: normal; color: var(--bad);  font-weight: 600; }
+em.warn { font-style: normal; color: var(--warn); font-weight: 600; }
+
+/* --- Callouts --- */
+
+.note, .tip {
+    margin: 14px 0;
+    padding: 12px 16px;
+    border-radius: 6px;
+    border-left: 3px solid;
+    font-size: 13.5px;
+    color: var(--fg);
+}
+.note { background: #fff8e6; border-color: #e6b800; }
+.tip  { background: #ecf7ee; border-color: var(--ok); }
+
+.note strong, .tip strong { display: inline; }
+
+/* --- Footer --- */
+
+.footer {
+    border-top: 1px solid var(--rule);
+    background: var(--bg-soft);
+    padding: 22px 40px;
+    margin-top: 8px;
 }
 
-.tip {
-    background: #e8f5e9;
-    border-left: 4px solid #4caf50;
-    padding: 10px 14px;
-    margin: 12px 0;
-    border-radius: 2px;
+.footer-table {
+    width: 100%;
+    max-width: 760px;
+    margin: 0 auto;
+    border: none;
+    border-radius: 0;
+    overflow: visible;
+    font-size: inherit;
+}
+.footer-table td { border: none; background: transparent; padding: 0; }
+
+.footer-logo-cell {
+    width: 1%;
+    white-space: nowrap;
+    vertical-align: middle;
+    padding-right: 24px !important;
+}
+
+.footer-logo {
+    height: 40px;
+    width: auto;
+    opacity: 0.9;
+    display: block;
+}
+
+.footer-build-cell {
+    vertical-align: middle;
+    text-align: right;
+    font-size: 12.5px;
+    color: var(--fg-faint);
+    line-height: 1.6;
+}
+.footer-build-cell strong { color: var(--fg); font-weight: 600; }
+.footer-build-cell .copyright { margin-top: 4px; }
+
+.footer-links {
+    margin-top: 6px;
+    font-size: 12px;
+    color: var(--fg-faint);
+}
+.footer-links .sep { margin: 0 8px; opacity: 0.6; }
+.footer-links .lead { margin-right: 4px; }
+
+/* --- Narrow window adjustments --- */
+
+@media (max-width: 640px) {
+    .hero { padding: 20px; }
+    .hero-logo-cell { width: 64px; padding-right: 14px !important; }
+    .hero-logo { width: 56px; height: 56px; border-radius: 12px; }
+    .hero h1 { font-size: 22px; }
+    .content { padding: 20px; }
+    .toc ol { columns: 1; }
+    .footer { padding: 20px; }
+    .footer-logo-cell { padding-right: 14px !important; }
+    .footer-logo { height: 32px; }
 }

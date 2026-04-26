@@ -1,0 +1,327 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta http-equiv="content-type" content="text/html;charset=utf-8" />
+    <title>Claude Shell Help</title>
+    <meta name="AppleTitle" content="Claude Shell Help" />
+    <meta name="description" content="User guide for Claude Shell — Claude session sharing manager" />
+    <link rel="stylesheet" href="style.css" type="text/css" media="screen" />
+</head>
+<body>
+
+<header class="hero">
+    <table class="hero-table" cellspacing="0" cellpadding="0">
+        <tr>
+            <td class="hero-logo-cell">
+                <img src="logo.png" alt="Claude Shell" class="hero-logo" />
+            </td>
+            <td class="hero-text-cell">
+                <h1>Claude Shell</h1>
+                <p class="tagline">Share your Claude Code sessions, securely, from anywhere.</p>
+                <p class="meta">
+                    <span class="badge">Version @APP_VERSION@</span>
+                    <span class="badge">Build @APP_BUILD_NUMBER@</span>
+                    <span class="badge">@BUILD_DATE@</span>
+                </p>
+            </td>
+        </tr>
+    </table>
+</header>
+
+<main class="content">
+
+<nav class="toc">
+    <strong>Contents</strong>
+    <ol>
+        <li><a href="#overview">Overview</a></li>
+        <li><a href="#quickstart">Quick Start</a></li>
+        <li><a href="#sessions">Sessions Tab</a></li>
+        <li><a href="#server">Server Tab</a></li>
+        <li><a href="#tunnels">Tunnels Tab</a></li>
+        <li><a href="#logs">Logs Tab</a></li>
+        <li><a href="#remote">Remote Web Client</a></li>
+        <li><a href="#cli">Command Line</a></li>
+        <li><a href="#menus">Menus &amp; Shortcuts</a></li>
+        <li><a href="#security">Security</a></li>
+        <li><a href="#troubleshooting">Troubleshooting</a></li>
+        <li><a href="#requirements">Requirements</a></li>
+    </ol>
+</nav>
+
+<section id="overview">
+    <h2>Overview</h2>
+    <p>Claude Shell is a macOS management console that lets you expose a running
+    Claude Code CLI session to a remote browser through a tunnel provider.
+    The desktop app discovers your local sessions, runs a local WebSocket
+    proxy with an authentication token, and orchestrates a tunnel
+    (ngrok, Microsoft Dev Tunnels, or Cloudflare Tunnel) so you—or a
+    teammate—can drive the session from any browser.</p>
+
+    <div class="note">
+        <strong>Console only.</strong> Claude Shell does not interact with
+        Claude itself. All prompts, tool approvals, and responses happen
+        in the remote web client that connects through the tunnel.
+    </div>
+</section>
+
+<section id="quickstart">
+    <h2>Quick Start</h2>
+    <ol class="steps">
+        <li>Make sure the <code>claude</code> CLI is installed and reachable on
+        your <code>PATH</code>.</li>
+        <li>Open the <strong>Server</strong> tab and click
+        <strong>Start Server</strong>. Claude Shell binds a local WebSocket
+        on a random port and generates an auth token.</li>
+        <li>Open the <strong>Tunnels</strong> tab, choose a provider from the
+        dropdown, click <strong>Add</strong>, then press the green start
+        icon next to the new row.</li>
+        <li>When the status turns <em class="ok">connected</em>, copy the
+        <strong>Public URL</strong> and share it together with the auth
+        token (or the full <code>?token=…</code> URL) with the remote user.</li>
+        <li>The remote user opens the URL in a browser, picks the discovered
+        session in the sidebar, and starts working.</li>
+    </ol>
+    <div class="tip">
+        <strong>Try it locally first.</strong> Use <strong>Open Test Client</strong>
+        on the Server tab to launch the embedded web UI in your default
+        browser with the token already filled in.
+    </div>
+</section>
+
+<section id="sessions">
+    <h2>Sessions Tab</h2>
+    <p>Lists every Claude Code CLI session running on your machine.</p>
+    <table>
+        <tr><th>Column</th><th>Description</th></tr>
+        <tr><td>PID</td><td>Process ID of the Claude CLI session.</td></tr>
+        <tr><td>Name</td><td>Session display name, or <code>(unnamed)</code>.</td></tr>
+        <tr><td>CWD</td><td>Working directory the session was launched from.</td></tr>
+        <tr><td>Started</td><td>Local time the session began (DD/MM HH:MM).</td></tr>
+        <tr><td>Status</td><td><em class="ok">alive</em> or <em class="bad">dead</em>.</td></tr>
+    </table>
+    <p>Click the refresh icon (or press <kbd>⌘R</kbd>) to rescan immediately.</p>
+</section>
+
+<section id="server">
+    <h2>Server Tab</h2>
+    <p>Controls the local WebSocket proxy that bridges remote clients to your
+    Claude sessions.</p>
+    <ul>
+        <li><strong>Start Server / Stop Server</strong> — Toggles the proxy.
+        When running, the header shows the bound port and the number of
+        connected clients.</li>
+        <li><strong>URL</strong> — Read-only field with the full
+        <code>ws://localhost:PORT/ws?token=…</code> connection string.</li>
+        <li><strong>Copy URL</strong> — Copies that string to the clipboard.</li>
+        <li><strong>Open Test Client</strong> — Launches the embedded web UI
+        in your default browser. On macOS, you can choose to always open
+        in Safari.</li>
+        <li><strong>Claude binary path</strong> — Auto-detected from
+        <code>PATH</code>, but editable. The override is persisted across
+        launches in <code>com.komsoft.claude-shell</code> preferences.</li>
+    </ul>
+</section>
+
+<section id="tunnels">
+    <h2>Tunnels Tab</h2>
+    <p>Configure and manage public tunnels that expose the local server.</p>
+
+    <h3>Adding a tunnel</h3>
+    <ol>
+        <li>Pick a provider in the dropdown — the badge shows whether it's
+        installed and authenticated.</li>
+        <li>The port defaults to the running server's port. Change it before
+        starting the server if you need a different one.</li>
+        <li>Click the <strong>+</strong> (Add) button to insert a row.</li>
+        <li>Click the green play button on the row to start the tunnel.</li>
+    </ol>
+
+    <h3>Per-row controls</h3>
+    <ul>
+        <li><strong>Start / Stop</strong> — Toggle the tunnel process.</li>
+        <li><strong>Restart</strong> — Useful when a tunnel ends up in
+        <em class="bad">failed</em> state.</li>
+        <li><strong>Remove</strong> — Delete the tunnel row.</li>
+        <li><strong>Details</strong> — Open a dialog with the live
+        provider log and any error output.</li>
+    </ul>
+
+    <h3>Status colors</h3>
+    <table>
+        <tr><th>State</th><th>Meaning</th></tr>
+        <tr><td><em>idle</em></td><td>Configured but not started.</td></tr>
+        <tr><td><em>starting</em></td><td>Provider process spawned, waiting for URL.</td></tr>
+        <tr><td><em class="ok">connected</em></td><td>Public URL is live.</td></tr>
+        <tr><td><em class="bad">failed</em></td><td>Provider exited or is missing.</td></tr>
+        <tr><td><em>stopped</em></td><td>Cleanly stopped by you.</td></tr>
+    </table>
+
+    <h3>Supported providers</h3>
+    <table>
+        <tr><th>Provider</th><th>Binary</th><th>Setup notes</th></tr>
+        <tr><td>ngrok</td><td><code>ngrok</code></td>
+            <td>Requires <code>ngrok config add-authtoken …</code>.</td></tr>
+        <tr><td>Microsoft Dev Tunnels</td><td><code>devtunnel</code></td>
+            <td>Requires <code>devtunnel user login</code>.</td></tr>
+        <tr><td>Cloudflare Tunnel</td><td><code>cloudflared</code></td>
+            <td>Quick tunnels work with no account.</td></tr>
+    </table>
+    <p>Click <strong>Setup guide</strong> next to the provider dropdown for
+    install instructions.</p>
+</section>
+
+<section id="logs">
+    <h2>Logs Tab</h2>
+    <p>Color-coded application log: session discovery, proxy activity, tunnel
+    state changes, and errors. Each line is formatted as
+    <code>HH:MM:SS [LVL] message</code>.</p>
+    <ul>
+        <li><strong>DBG</strong> — gray, internal diagnostics.</li>
+        <li><strong>INF</strong> — black, normal events.</li>
+        <li><strong>WRN</strong> — yellow, recoverable issues.</li>
+        <li><strong>ERR</strong> — red, failures requiring attention.</li>
+    </ul>
+    <p>Use <strong>Clear</strong> to wipe the buffer, <strong>Copy</strong>
+    to put the full log on the clipboard, or <strong>Save</strong> to write
+    it to a <code>.log</code> file.</p>
+</section>
+
+<section id="remote">
+    <h2>Remote Web Client</h2>
+    <p>The web UI served by the proxy is what your remote user actually
+    interacts with.</p>
+    <ul>
+        <li><strong>Connection bar</strong> — WebSocket URL, token, role
+        (Controller or Viewer), and Connect / Disconnect.</li>
+        <li><strong>Sidebar</strong> — Discovered Claude sessions; click one
+        to attach.</li>
+        <li><strong>Chat area</strong> — Streaming responses, tool-use
+        prompts, and a multi-line input. <kbd>Enter</kbd> sends,
+        <kbd>Shift</kbd>+<kbd>Enter</kbd> inserts a newline.</li>
+        <li><strong>Abort</strong> — Cancel the running response.</li>
+        <li><strong>Status bar</strong> — Live connection / authentication
+        state with auto-reconnect.</li>
+    </ul>
+    <p><strong>Roles:</strong> the first <em>Controller</em> connection drives
+    the session; additional connections are forced into <em>Viewer</em>
+    (read-only) mode.</p>
+</section>
+
+<section id="cli">
+    <h2>Command Line</h2>
+    <p>Running <code>claude-shell</code> with arguments dispatches commands to
+    the running instance over a Unix domain socket
+    (<code>/tmp/claude-shell-$USER.sock</code>). If no instance is running
+    you'll see <code>error: no running instance found</code>.</p>
+    <table>
+        <tr><th>Command</th><th>Description</th></tr>
+        <tr><td><code>claude-shell</code></td><td>Launch the GUI (or focus an existing instance).</td></tr>
+        <tr><td><code>claude-shell status</code></td><td>Print server, client, session, and tunnel summary.</td></tr>
+        <tr><td><code>claude-shell sessions</code></td><td>List discovered Claude sessions.</td></tr>
+        <tr><td><code>claude-shell start [port]</code></td><td>Start the proxy server on an optional port.</td></tr>
+        <tr><td><code>claude-shell stop</code></td><td>Stop the proxy server.</td></tr>
+        <tr><td><code>claude-shell url</code></td><td>Print the WebSocket connection string (handy with <code>pbcopy</code>).</td></tr>
+        <tr><td><code>claude-shell tunnel &lt;provider&gt;</code></td><td>Start a tunnel for the running server.</td></tr>
+        <tr><td><code>claude-shell show</code></td><td>Bring the main window to the front.</td></tr>
+        <tr><td><code>claude-shell --version</code></td><td>Print version and build number.</td></tr>
+        <tr><td><code>claude-shell --help</code></td><td>Print built-in help.</td></tr>
+    </table>
+</section>
+
+<section id="menus">
+    <h2>Menus &amp; Shortcuts</h2>
+    <table>
+        <tr><th>Menu Item</th><th>Shortcut</th><th>Action</th></tr>
+        <tr><td>File &gt; Close Window</td><td><kbd>⌘W</kbd></td><td>Hide the main window (app stays in the menu bar).</td></tr>
+        <tr><td>Session &gt; Refresh Sessions</td><td><kbd>⌘R</kbd></td><td>Rescan running Claude sessions.</td></tr>
+        <tr><td>Tunnel &gt; Stop All Tunnels</td><td>—</td><td>Terminate every active tunnel process.</td></tr>
+        <tr><td>Help &gt; Claude Shell Help</td><td><kbd>⌘?</kbd></td><td>Open this help book.</td></tr>
+    </table>
+</section>
+
+<section id="security">
+    <h2>Security</h2>
+    <ul>
+        <li>Each server instance generates a fresh 256-bit random auth token,
+        base64url-encoded (~43 characters).</li>
+        <li>Tokens are validated with constant-time comparison.</li>
+        <li>Tunnel providers terminate TLS — your traffic to the public URL
+        is encrypted.</li>
+        <li>Only one Controller may attach to a session at a time; others
+        connect as Viewers and cannot send input.</li>
+        <li>Treat the connection string like a password — anyone with it can
+        drive your Claude session for as long as the tunnel is up.</li>
+    </ul>
+    <div class="note">
+        <strong>Stop tunnels when finished.</strong> The Tunnel menu's
+        <em>Stop All Tunnels</em> action is the fastest way to revoke
+        access.
+    </div>
+</section>
+
+<section id="troubleshooting">
+    <h2>Troubleshooting</h2>
+    <table>
+        <tr><th>Symptom</th><th>What to check</th></tr>
+        <tr><td>No sessions appear</td>
+            <td>Run <code>claude</code> in a terminal to confirm the CLI is
+            installed; press <kbd>⌘R</kbd> to refresh.</td></tr>
+        <tr><td>Server fails to start</td>
+            <td>Verify the <em>Claude binary path</em> on the Server tab.
+            Check the Logs tab for the underlying error.</td></tr>
+        <tr><td>Provider shows ⊘ "not found"</td>
+            <td>Install the provider's CLI (<code>brew install ngrok</code>,
+            <code>brew install cloudflare/cloudflare/cloudflared</code>,
+            or download <code>devtunnel</code> from Microsoft).</td></tr>
+        <tr><td>Tunnel stuck on <em>starting</em></td>
+            <td>Open <strong>Details</strong> for the row to read the
+            provider's live log; auth tokens for ngrok or devtunnel may
+            be missing.</td></tr>
+        <tr><td>Remote browser cannot connect</td>
+            <td>Some networks block WebSockets. Try a different network,
+            disable browser extensions, or check Screen Time / firewall
+            rules.</td></tr>
+        <tr><td>Second launch does nothing</td>
+            <td>Expected — Claude Shell is single-instance. The second
+            invocation focuses the running window.</td></tr>
+    </table>
+</section>
+
+<section id="requirements">
+    <h2>System Requirements</h2>
+    <ul>
+        <li>macOS 13.0 (Ventura) or later</li>
+        <li>Claude Code CLI on <code>PATH</code></li>
+        <li>At least one tunnel provider:
+            <code>ngrok</code>, <code>devtunnel</code>, or
+            <code>cloudflared</code></li>
+    </ul>
+</section>
+
+</main>
+
+<footer class="footer">
+    <table class="footer-table" cellspacing="0" cellpadding="0">
+        <tr>
+            <td class="footer-logo-cell">
+                <img src="komsoft.png" alt="KomSoft Oprogramowanie" class="footer-logo" />
+            </td>
+            <td class="footer-build-cell">
+                <div>Claude Shell <strong>@APP_VERSION@</strong>
+                     (build <strong>@APP_BUILD_NUMBER@</strong>)</div>
+                <div>Built @BUILD_DATE@</div>
+                <div class="copyright">Copyright © 2025–2026 KomSoft Oprogramowanie</div>
+                <div class="footer-links">
+                    <span class="lead">Visit us on Github:</span>
+                    <a href="@REPO_URL@">Project</a>
+                    <span class="sep">·</span>
+                    <a href="@ISSUES_URL@">Report an issue</a>
+                </div>
+            </td>
+        </tr>
+    </table>
+</footer>
+
+</body>
+</html>

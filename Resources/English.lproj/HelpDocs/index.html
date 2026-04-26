@@ -1,0 +1,99 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta http-equiv="content-type" content="text/html;charset=utf-8" />
+    <title>Claude Shell Help</title>
+    <meta name="AppleTitle" content="Claude Shell Help" />
+    <meta name="description" content="User guide for Claude Shell — Claude session sharing manager" />
+    <link rel="stylesheet" href="style.css" type="text/css" media="screen" />
+</head>
+<body>
+<div class="padded">
+
+<h1>Claude Shell Help</h1>
+
+<h2>Getting Started</h2>
+<p>Claude Shell is a management tool for sharing Claude Code CLI sessions remotely.
+It discovers running sessions, creates WebSocket proxy bridges, and configures
+tunnel providers to expose them for remote access.</p>
+
+<p class="note"><strong>Important:</strong> Claude Shell is a management console only.
+All interaction with Claude sessions happens through the remote web client that
+connects via the tunnel.</p>
+
+<h2>Interface Overview</h2>
+
+<h3>Sessions Tab</h3>
+<p>Displays all discovered Claude Code sessions running on your machine.
+Sessions are scanned from <code>~/.claude/sessions/</code> every 3 seconds.</p>
+<table>
+    <tr><th>Column</th><th>Description</th></tr>
+    <tr><td>PID</td><td>Process ID of the Claude CLI session</td></tr>
+    <tr><td>Name</td><td>Session display name (if set)</td></tr>
+    <tr><td>CWD</td><td>Working directory of the session</td></tr>
+    <tr><td>Started</td><td>Time the session was started</td></tr>
+    <tr><td>Status</td><td>Whether the process is alive or dead</td></tr>
+</table>
+<p>Select a session and click <strong>Start Proxy</strong> to create a WebSocket bridge.</p>
+
+<h3>Proxies Tab</h3>
+<p>Shows running proxy bridges. Each proxy spawns a <code>claude --print</code>
+process and exposes it via WebSocket.</p>
+<ul>
+    <li><strong>Start Tunnel</strong> &mdash; Expose the proxy via a tunnel provider</li>
+    <li><strong>Stop Proxy</strong> &mdash; Terminate the proxy and claude process</li>
+    <li><strong>Copy WS URL</strong> &mdash; Copy the local WebSocket URL to clipboard</li>
+</ul>
+
+<h3>Tunnels Tab</h3>
+<p>Configure and manage tunnel providers to expose proxies to the internet.</p>
+<p>Supported providers:</p>
+<ul>
+    <li><strong>ngrok</strong> &mdash; <code>ngrok http &lt;port&gt;</code></li>
+    <li><strong>Microsoft Dev Tunnels</strong> &mdash; <code>devtunnel host -p &lt;port&gt;</code></li>
+    <li><strong>Cloudflare Tunnel</strong> &mdash; <code>cloudflared tunnel --url http://localhost:&lt;port&gt;</code></li>
+</ul>
+<p>Click <strong>Copy Connection String</strong> to get the shareable URL with auth token.</p>
+
+<h3>Logs Tab</h3>
+<p>Color-coded log output for debugging. Shows session discovery, proxy events,
+tunnel status, and errors.</p>
+
+<h2>Remote Access</h2>
+<p>Once a tunnel is running, open the public URL in a browser. The remote web
+client allows full interactive control of the Claude session:</p>
+<ul>
+    <li>Send prompts and receive streaming responses</li>
+    <li>Approve or reject tool calls</li>
+    <li>Abort running responses</li>
+    <li>View conversation history</li>
+</ul>
+
+<h2>Security</h2>
+<ul>
+    <li>Each proxy generates a 256-bit random auth token</li>
+    <li>Tunnel providers handle TLS encryption</li>
+    <li>Only one controller per session (additional connections become viewers)</li>
+    <li>Never share connection strings with untrusted parties</li>
+</ul>
+
+<h2>Troubleshooting</h2>
+<table>
+    <tr><th>Issue</th><th>Solution</th></tr>
+    <tr><td>No sessions found</td><td>Ensure Claude Code is running (<code>claude</code> in terminal)</td></tr>
+    <tr><td>Proxy fails to start</td><td>Check that <code>claude</code> is in your PATH</td></tr>
+    <tr><td>No tunnel providers</td><td>Install ngrok, devtunnel, or cloudflared</td></tr>
+    <tr><td>Tunnel URL not appearing</td><td>Check Logs tab for tunnel process output</td></tr>
+</table>
+
+<h2>System Requirements</h2>
+<ul>
+    <li>macOS 13.0 (Ventura) or later</li>
+    <li>Claude Code CLI installed</li>
+    <li>At least one tunnel provider (ngrok, devtunnel, or cloudflared)</li>
+</ul>
+
+</div>
+</body>
+</html>

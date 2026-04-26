@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(claude-shell VERSION 0.1.0 LANGUAGES CXX)
+project(ClaudeShell VERSION 0.1.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -17,7 +17,7 @@ foreach(_line IN LISTS _build_info_lines)
         set(APP_BUILD_NUMBER "${CMAKE_MATCH_1}")
     endif()
 endforeach()
-set(APP_BUNDLE_ID "com.komsoft.claude-shell")
+set(APP_BUNDLE_ID "com.komsoft.claudeshell")
 message(STATUS "Claude Shell ${APP_VERSION} (build ${APP_BUILD_NUMBER})")
 
 # --- FLTK (static, pre-built) ---
@@ -73,18 +73,17 @@ if(APPLE)
 
     set(ICON_FILE "${CMAKE_SOURCE_DIR}/icon.icns")
 
-    add_executable(claude-shell MACOSX_BUNDLE ${SOURCES} ${OBJCXX_SOURCES})
+    add_executable(ClaudeShell MACOSX_BUNDLE ${SOURCES} ${OBJCXX_SOURCES})
 
     # Icon as bundle resource
     if(EXISTS "${ICON_FILE}")
-        target_sources(claude-shell PRIVATE "${ICON_FILE}")
+        target_sources(ClaudeShell PRIVATE "${ICON_FILE}")
         set_source_files_properties("${ICON_FILE}" PROPERTIES
             MACOSX_PACKAGE_LOCATION "Resources"
         )
     endif()
 
-    set_target_properties(claude-shell PROPERTIES
-        OUTPUT_NAME "ClaudeShell"
+    set_target_properties(ClaudeShell PROPERTIES
         MACOSX_BUNDLE TRUE
         MACOSX_BUNDLE_BUNDLE_NAME "Claude Shell"
         MACOSX_BUNDLE_BUNDLE_VERSION "${APP_BUILD_NUMBER}"
@@ -100,10 +99,10 @@ if(APPLE)
     )
 
     # Post-build: copy Credits.rtf
-    add_custom_command(TARGET claude-shell POST_BUILD
+    add_custom_command(TARGET ClaudeShell POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different
             "${CMAKE_SOURCE_DIR}/Resources/Credits.rtf"
-            "$<TARGET_BUNDLE_DIR:claude-shell>/Contents/Resources/Credits.rtf"
+            "$<TARGET_BUNDLE_DIR:ClaudeShell>/Contents/Resources/Credits.rtf"
         COMMENT "Copying Credits.rtf to bundle"
     )
 
@@ -112,7 +111,7 @@ if(APPLE)
     # dependency tracking so plain `cmake --build` regenerates correctly.
     # CFBundleHelpBookFolder = "HelpDocs" — macOS resolves via English.lproj/
     set(HELP_SRC "${CMAKE_SOURCE_DIR}/Resources/English.lproj/HelpDocs")
-    set(HELP_DST "$<TARGET_BUNDLE_DIR:claude-shell>/Contents/Resources/English.lproj/HelpDocs")
+    set(HELP_DST "$<TARGET_BUNDLE_DIR:ClaudeShell>/Contents/Resources/English.lproj/HelpDocs")
     set(HELP_STAMP "${CMAKE_BINARY_DIR}/CMakeFiles/help.stamp")
     set(LSREGISTER "/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/LaunchServices.framework/Versions/A/Support/lsregister")
 
@@ -138,8 +137,8 @@ if(APPLE)
         # so re-registering with lsregister alone is not enough — helpd
         # must be killed (it auto-respawns) and any open Help Viewer
         # window closed. Failures are non-fatal.
-        COMMAND ${CMAKE_COMMAND} -E touch "$<TARGET_BUNDLE_DIR:claude-shell>"
-        COMMAND sh -c "'${LSREGISTER}' -f '$<TARGET_BUNDLE_DIR:claude-shell>' >/dev/null 2>&1 || true"
+        COMMAND ${CMAKE_COMMAND} -E touch "$<TARGET_BUNDLE_DIR:ClaudeShell>"
+        COMMAND sh -c "'${LSREGISTER}' -f '$<TARGET_BUNDLE_DIR:ClaudeShell>' >/dev/null 2>&1 || true"
         COMMAND sh -c "killall -9 helpd 'Help Viewer' >/dev/null 2>&1 || true"
         COMMAND sh -c "rm -rf \"$ENV{HOME}/Library/Caches/com.apple.help\"* \"$ENV{HOME}/Library/Caches/com.apple.helpd\" \"$ENV{HOME}/Library/HTTPStorages/com.apple.helpd\" \"$ENV{HOME}/Library/Group Containers/group.com.apple.helpviewer.content/Library/Caches/${APP_BUNDLE_ID}.\"*.help 2>/dev/null || true"
         COMMAND ${CMAKE_COMMAND} -E touch "${HELP_STAMP}"
@@ -154,21 +153,21 @@ if(APPLE)
         VERBATIM
     )
 
-    add_custom_target(claude-shell-help ALL DEPENDS "${HELP_STAMP}")
-    add_dependencies(claude-shell-help claude-shell)
+    add_custom_target(ClaudeShell-help ALL DEPENDS "${HELP_STAMP}")
+    add_dependencies(ClaudeShell-help ClaudeShell)
 
     # Manual full-refresh target (also unregisters stale bundle paths
     # left by Xcode archives etc.):  cmake --build build --target help-refresh
     add_custom_target(help-refresh
         COMMAND "${CMAKE_SOURCE_DIR}/_scripts/refresh-help.sh"
-            "$<TARGET_BUNDLE_DIR:claude-shell>"
-        DEPENDS claude-shell-help
+            "$<TARGET_BUNDLE_DIR:ClaudeShell>"
+        DEPENDS ClaudeShell-help
         COMMENT "Forcing full Help Viewer cache refresh"
         VERBATIM
     )
 
     # Compile definitions for version info and incbin paths
-    target_compile_definitions(claude-shell PRIVATE
+    target_compile_definitions(ClaudeShell PRIVATE
         BUILD_VERSION="${APP_VERSION}"
         BUILD_NUMBER=${APP_BUILD_NUMBER}
         SOURCE_DIR="${CMAKE_SOURCE_DIR}"
@@ -177,18 +176,18 @@ if(APPLE)
     # App Store build disables doctest
     option(BUILD_APPSTORE "Build for App Store (disables tests)" OFF)
     if(BUILD_APPSTORE)
-        target_compile_definitions(claude-shell PRIVATE DOCTEST_CONFIG_DISABLE)
+        target_compile_definitions(ClaudeShell PRIVATE DOCTEST_CONFIG_DISABLE)
     endif()
 
 else()
-    add_executable(claude-shell ${SOURCES})
+    add_executable(ClaudeShell ${SOURCES})
 endif()
 
-target_include_directories(claude-shell PRIVATE
+target_include_directories(ClaudeShell PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
-target_link_libraries(claude-shell PRIVATE
+target_link_libraries(ClaudeShell PRIVATE
     fltk
     fltk_images
     fltk_png

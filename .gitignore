@@ -3,3 +3,4 @@ CLAUDE.md
 .cache
 ,claude*
 build
+dist

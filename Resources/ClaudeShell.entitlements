@@ -2,15 +2,12 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-    <key>com.apple.security.app-sandbox</key>
-    <true/>
-    <key>com.apple.security.files.user-selected.read-write</key>
-    <true/>
-    <key>com.apple.security.network.client</key>
-    <true/>
-    <key>com.apple.security.network.server</key>
-    <true/>
-    <key>com.apple.security.process.allow-subprocess</key>
-    <true/>
+    <!-- Developer ID + Hardened Runtime build.
+         No App Sandbox: Claude Shell needs to spawn user-installed CLIs
+         (claude, ngrok, devtunnel, cloudflared) found on PATH, which
+         the sandbox forbids regardless of file-picker entitlements.
+         Hardened Runtime requires no exceptions for this app — it does
+         not JIT, allocate unsigned executable memory, dlopen unsigned
+         dylibs, or read DYLD_* environment variables. -->
 </dict>
 </plist>

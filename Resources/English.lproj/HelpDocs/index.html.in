@@ -119,7 +119,7 @@
         in Safari.</li>
         <li><strong>Claude binary path</strong> — Auto-detected from
         <code>PATH</code>, but editable. The override is persisted across
-        launches in <code>com.komsoft.claude-shell</code> preferences.</li>
+        launches in <code>com.komsoft.claudeshell</code> preferences.</li>
     </ul>
 </section>
 

@@ -1,5 +1,7 @@
 # Claude Shell
 
+[![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.com/donate?business=6QXS8MBPKBTTN&item_name=Claude+Shell+app.&currency_code=USD)
+
 A macOS management console for sharing your local **Claude Code** CLI sessions
 with a remote browser through a tunnel provider.
 
@@ -69,3 +71,9 @@ Outputs land in `dist/`.
 ## License
 
 Copyright © 2025–2026 KomSoft Oprogramowanie. All rights reserved.
+
+## Support
+
+If you find this useful, please consider supporting development:
+
+[![Donate](img/donate.png)](https://www.paypal.com/donate?business=6QXS8MBPKBTTN&item_name=Claude+Shell+app.&currency_code=USD)

@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Claude Shell Remote</title>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+<div id="app">
+    <!-- Connection Bar -->
+    <header id="topbar">
+        <div class="topbar-left">
+            <h1>Claude Shell</h1>
+            <span id="connection-badge" class="badge badge-disconnected">Disconnected</span>
+        </div>
+        <div class="topbar-right" id="connect-form">
+            <input type="text" id="ws-url" placeholder="ws://localhost:PORT/ws" spellcheck="false">
+            <input type="text" id="ws-token" placeholder="Auth token" spellcheck="false">
+            <select id="ws-role">
+                <option value="controller">Controller</option>
+                <option value="viewer">Viewer</option>
+            </select>
+            <button id="connect-btn" onclick="toggleConnection()">Connect</button>
+            <button id="close-tunnel-btn" class="btn-danger hidden" onclick="closeTunnel()" title="Stop the tunnel used for this connection">Close Tunnel</button>
+        </div>
+    </header>
+
+    <!-- Main content area -->
+    <div id="main">
+        <!-- Sidebar: Session list -->
+        <aside id="sidebar">
+            <div class="sidebar-header">
+                <h2>Sessions</h2>
+                <button class="icon-btn" onclick="requestSessionList()" title="Refresh sessions">&#x21bb;</button>
+            </div>
+            <div id="session-list">
+                <p class="muted">Connect to see sessions</p>
+            </div>
+        </aside>
+
+        <!-- Chat area -->
+        <section id="chat-area">
+            <div id="chat-header">
+                <span id="session-info" class="muted">No session attached</span>
+                <div id="session-status"></div>
+            </div>
+
+            <div id="messages"></div>
+
+            <div id="input-area">
+                <textarea id="user-input" placeholder="Type a message... (Enter to send, Shift+Enter for newline)"
+                          disabled rows="3"></textarea>
+                <div id="input-buttons">
+                    <button id="send-btn" onclick="sendMessage()" disabled>Send</button>
+                    <button id="abort-btn" onclick="sendAbort()" disabled class="btn-danger">Abort</button>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Status bar -->
+    <footer id="statusbar">
+        <span id="status-text">Ready</span>
+    </footer>
+</div>
+
+<script src="/app.js"></script>
+</body>
+</html>

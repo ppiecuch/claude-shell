@@ -272,7 +272,7 @@ function handleAssistantEvent(event) {
         div.className = 'message message-assistant';
         let body = renderMarkdown(text);
         for (const tu of toolUses) body += renderToolUse(tu);
-        div.innerHTML = `<div class="message-label">Claude</div><div class="message-body">${body}</div>`;
+        div.innerHTML = `<div class="message-label"><span>Claude</span><span class="message-time">${formatTimestamp()}</span></div><div class="message-body">${body}</div>`;
         document.getElementById('messages').appendChild(div);
         currentAssistantDiv = hasTools ? null : div;
     }
@@ -283,7 +283,7 @@ function addUserMessage(content) {
     currentAssistantDiv = null;
     const div = document.createElement('div');
     div.className = 'message message-user';
-    div.innerHTML = `<div class="message-label">You</div><div class="message-body">${renderMarkdown(content)}</div>`;
+    div.innerHTML = `<div class="message-label"><span>You</span><span class="message-time">${formatTimestamp()}</span></div><div class="message-body">${renderMarkdown(content)}</div>`;
     document.getElementById('messages').appendChild(div);
     scrollToBottom();
 }
@@ -500,6 +500,15 @@ function setBadge(state) {
 
 function setStatus(text) {
     document.getElementById('status-text').textContent = text;
+}
+
+function formatTimestamp() {
+    const now = new Date();
+    const dd = String(now.getDate()).padStart(2, '0');
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const hh = String(now.getHours()).padStart(2, '0');
+    const min = String(now.getMinutes()).padStart(2, '0');
+    return `${dd}/${mm} ${hh}:${min}`;
 }
 
 function scrollToBottom() {

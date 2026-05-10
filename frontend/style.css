@@ -253,6 +253,9 @@ body {
     font-weight: 600;
     font-size: 11px;
     margin-bottom: 4px;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
 }
 .message-assistant {
     background: var(--bg-message-assistant);
@@ -264,6 +267,15 @@ body {
     font-weight: 600;
     font-size: 11px;
     margin-bottom: 4px;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+}
+.message-time {
+    font-size: 10px;
+    font-weight: 400;
+    color: var(--text-dim);
+    margin-left: 8px;
 }
 .message-tool {
     background: var(--bg-message-tool);

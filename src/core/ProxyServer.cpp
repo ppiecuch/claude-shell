@@ -2,8 +2,10 @@
 #include "core/TunnelManager.h"
 #include "net/AuthToken.h"
 #include "util/Logger.h"
+#include "util/Platform.h"
 #include "util/incbin.h"
 #include <nlohmann/json.hpp>
+#include <fstream>
 #include <cstring>
 
 // Embedded frontend files (defined in resources.cpp via INCTXT)
@@ -151,8 +153,7 @@ ProxyServer::ClaudeSession* ProxyServer::getOrSpawnSession(const std::string& se
         "--resume", sessionId,
         "--output-format", "stream-json",
         "--input-format", "stream-json",
-        "--include-partial-messages",
-        "--replay-user-messages"
+        "--include-partial-messages"
     };
 
     auto process = ProcessHandle::spawn(claudeBinary_, args, info->cwd);
@@ -222,14 +223,9 @@ void ProxyServer::onWsMessage(WsClient* client, const std::string& msg) {
             handleCloseTunnel(client, j);
         } else if (type == "history_request") {
             if (!state.attachedSession.empty()) {
-                auto csIt = claudeSessions_.find(state.attachedSession);
-                if (csIt != claudeSessions_.end()) {
-                    json historyMsg = {{"type", "history"}, {"events", json::array()}};
-                    for (auto& ev : csIt->second->history) {
-                        try { historyMsg["events"].push_back(json::parse(ev)); } catch (...) {}
-                    }
-                    sendToClient(client, historyMsg.dump());
-                }
+                // Flush any pending Claude output before building the snapshot
+                onClaudeDataReady(state.attachedSession);
+                sendHistory(client, state.attachedSession);
             }
         }
 
@@ -277,23 +273,16 @@ void ProxyServer::handleAttach(WsClient* client, const json& j) {
         return;
     }
 
-    // Check session exists
-    bool found = false;
+    const SessionInfo* info = nullptr;
     for (auto& s : sessions_) {
-        if (s.sessionId == sessionId) { found = true; break; }
+        if (s.sessionId == sessionId) { info = &s; break; }
     }
-    if (!found) {
+    if (!info) {
         sendError(client, "session_not_found", "Session not found");
         return;
     }
 
-    // Spawn or reuse claude process
-    auto* cs = getOrSpawnSession(sessionId);
-    if (!cs) {
-        sendError(client, "spawn_failed", "Failed to start claude process");
-        return;
-    }
-
+    // Process is spawned lazily on the first user message — just record the attachment.
     auto& state = clientStates_[client];
     state.attachedSession = sessionId;
 
@@ -301,14 +290,15 @@ void ProxyServer::handleAttach(WsClient* client, const json& j) {
         {"type", "attached"},
         {"sessionId", sessionId},
         {"sessionInfo", {
-            {"name", cs->info.name},
-            {"cwd", cs->info.cwd},
-            {"pid", cs->info.pid},
-            {"startedAt", cs->info.startedAt}
+            {"name", info->name},
+            {"cwd", info->cwd},
+            {"pid", info->pid},
+            {"startedAt", info->startedAt}
         }}
     };
     sendToClient(client, result.dump());
     sendStatus(client);
+    sendHistory(client, sessionId);
 
     LOG_INFO("Client attached to session %s", sessionId.c_str());
     if (onStateChange_) onStateChange_();
@@ -335,6 +325,13 @@ void ProxyServer::handleUserMessage(WsClient* client, const json& j) {
     }
     if (!isController(client, state.attachedSession)) {
         sendError(client, "forbidden", "Only controller can send messages");
+        return;
+    }
+
+    // Lazy-spawn the proxy process on first message.
+    auto* cs = getOrSpawnSession(state.attachedSession);
+    if (!cs) {
+        sendError(client, "spawn_failed", "Failed to start claude process");
         return;
     }
 
@@ -429,6 +426,50 @@ void ProxyServer::sendToClient(WsClient* client, const std::string& jsonStr) {
 void ProxyServer::sendError(WsClient* client, const std::string& code, const std::string& msg) {
     json err = {{"type", "error"}, {"code", code}, {"message", msg}};
     wsServer_.send(client, err.dump());
+}
+
+void ProxyServer::sendHistory(WsClient* client, const std::string& sessionId) {
+    const SessionInfo* info = nullptr;
+    for (auto& s : sessions_) {
+        if (s.sessionId == sessionId) { info = &s; break; }
+    }
+
+    // Circular buffer: stream through the whole JSONL but keep only the tail.
+    static constexpr size_t MAX_EVENTS = 50;
+    std::deque<json> ring;
+
+    if (info) {
+        std::string jsonlPath = Platform::sessionJsonlPath(info->cwd, sessionId);
+        std::ifstream file(jsonlPath);
+        std::string line;
+        while (std::getline(file, line)) {
+            if (line.empty()) continue;
+            try {
+                json ev = json::parse(line);
+                if (ev.value("isSidechain", false)) continue;
+                std::string type = ev.value("type", "");
+                if (type != "user" && type != "assistant") continue;
+                auto mit = ev.find("message");
+                if (mit != ev.end() && mit->is_object() && mit->value("model", "") == "<synthetic>")
+                    continue;
+
+                ring.push_back(std::move(ev));
+                if (ring.size() > MAX_EVENTS)
+                    ring.pop_front();
+            } catch (...) {}
+        }
+        LOG_DEBUG("sendHistory: last %zu events from %s", ring.size(), jsonlPath.c_str());
+    }
+
+    json historyMsg = {{"type", "history"}, {"events", json::array()}};
+    for (auto& ev : ring) {
+        historyMsg["events"].push_back({
+            {"type", "claude_event"},
+            {"sessionId", sessionId},
+            {"event", ev}
+        });
+    }
+    sendToClient(client, historyMsg.dump());
 }
 
 void ProxyServer::sendSessionList(WsClient* client) {

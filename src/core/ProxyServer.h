@@ -110,5 +110,6 @@ private:
     void sendError(WsClient* client, const std::string& code, const std::string& msg);
     void sendSessionList(WsClient* client);
     void sendStatus(WsClient* client);
+    void sendHistory(WsClient* client, const std::string& sessionId);
     bool isController(WsClient* client, const std::string& sessionId);
 };

@@ -3,8 +3,10 @@
 # build.sh — Configure and build Claude Shell
 #
 # Usage:
-#   ./_scripts/build.sh       # Build
-#   ./_scripts/build.sh +     # Bump build number, then build
+#   ./_scripts/build.sh            # Build
+#   ./_scripts/build.sh +          # Bump build number, then build
+#   ./_scripts/build.sh --install  # Build and install to ~/Applications
+#   ./_scripts/build.sh + --install
 #
 
 set -e
@@ -14,11 +16,30 @@ PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 BUILD_DIR="$PROJECT_DIR/build"
 BUILD_INFO="$PROJECT_DIR/build.info"
 
+APP_NAME="ClaudeShell"
+APP_BUNDLE="${APP_NAME}.app"
+
 # Parse arguments
 BUMP_BUILD=false
-if [[ "${1:-}" == "+" ]]; then
-    BUMP_BUILD=true
-fi
+INSTALL_APP=false
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        +)
+            BUMP_BUILD=true
+            shift
+            ;;
+        --install)
+            INSTALL_APP=true
+            shift
+            ;;
+        *)
+            echo "Unknown option: $1"
+            echo "Usage: ./_scripts/build.sh [+] [--install]"
+            exit 1
+            ;;
+    esac
+done
 
 # Bump build number if requested
 if [ "$BUMP_BUILD" = true ]; then
@@ -54,4 +75,29 @@ cmake --build "$BUILD_DIR" -j$(sysctl -n hw.ncpu 2>/dev/null || echo 4)
 
 echo ""
 echo "=== Build complete ==="
-echo "Binary: $BUILD_DIR/ClaudeShell.app"
+echo "Binary: $BUILD_DIR/$APP_BUNDLE"
+
+# Install to ~/Applications if requested
+if [ "$INSTALL_APP" = true ] && [ -d "$BUILD_DIR/$APP_BUNDLE" ]; then
+    echo ""
+    echo "--- Installing ---"
+    INSTALL_DIR="$HOME/Applications"
+    mkdir -p "$INSTALL_DIR"
+
+    if pgrep -x "$APP_NAME" > /dev/null 2>&1; then
+        echo "Stopping running $APP_NAME..."
+        pkill -x "$APP_NAME"
+        sleep 1
+    fi
+
+    if [ -d "$INSTALL_DIR/$APP_BUNDLE" ]; then
+        rm -rf "$INSTALL_DIR/$APP_BUNDLE"
+    fi
+
+    cp -r "$BUILD_DIR/$APP_BUNDLE" "$INSTALL_DIR/"
+    echo "Installed to: $INSTALL_DIR/$APP_BUNDLE"
+
+    echo "Launching $APP_NAME..."
+    open "$INSTALL_DIR/$APP_BUNDLE"
+    echo "=== Install complete ==="
+fi

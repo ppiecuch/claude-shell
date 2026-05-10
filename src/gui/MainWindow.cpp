@@ -49,7 +49,7 @@ MainWindow::MainWindow(int w, int h, const char*)
 
     end();
     resizable(tabs_);
-    size_range(700, 450);
+    size_range(700, 300);
 }
 
 void MainWindow::init(SessionManager* sm, ProxyServer* ps, TunnelManager* tm) {

@@ -26,6 +26,7 @@ private:
     void registerIpcCommands();
     void registerClaudeFds();
     void unregisterClaudeFds();
+    void autoAddAvailableTunnels();
 
     // FLTK timer/idle callbacks
     static void refreshTimerCb(void* data);

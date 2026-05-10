@@ -66,7 +66,7 @@ private:
         static constexpr float colRatios_[NUM_COLS] = {0.15f, 0.08f, 0.40f, 0.12f, 0.25f};
 
         // Button hit testing in actions column
-        enum ActionBtn { BtnNone, BtnStart, BtnStop, BtnRestart, BtnRemove, BtnDetails };
+        enum ActionBtn { BtnNone, BtnStart, BtnStop, BtnRestart, BtnRemove, BtnCopyUrl, BtnDetails };
         ActionBtn hitTestAction(int R, int X, int Y, int cellX, int cellY, int cellW, int cellH) const;
         void drawActionButtons(int R, int X, int Y, int W, int H);
     };

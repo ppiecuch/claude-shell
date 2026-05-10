@@ -28,7 +28,7 @@ int Application::run(int argc, char** argv) {
         return 1;
     }
 
-    window_ = std::make_unique<MainWindow>(900, 650, "Claude Shell");
+    window_ = std::make_unique<MainWindow>(900, 325, "Claude Shell");
     window_->init(&sessionMgr_, &proxyServer_, &tunnelMgr_);
 
     window_->proxyPanel()->setFrontendPath(SOURCE_DIR "/frontend");
@@ -76,6 +76,9 @@ int Application::run(int argc, char** argv) {
                     g_app->proxyServer_.updateSessionList(g_app->sessionMgr_.sessions());
                     g_app->registerClaudeFds();
                     g_app->window_->tunnelPanel()->setServerPort(g_app->proxyServer_.port());
+                    g_app->tunnelMgr_.updatePort(g_app->proxyServer_.port());
+                    g_app->autoAddAvailableTunnels();
+                    g_app->window_->tunnelPanel()->updateTunnels();
                     g_app->window_->proxyPanel()->updateStatus();
                     g_app->window_->updateStatusBar();
                 }
@@ -243,6 +246,17 @@ void Application::unregisterClaudeFds() {
     registeredFds_.clear();
 }
 
+void Application::autoAddAvailableTunnels() {
+    auto existing = tunnelMgr_.allTunnels();
+    for (auto& provName : tunnelMgr_.availableProviders()) {
+        bool found = false;
+        for (auto* t : existing)
+            if (t->providerName == provName) { found = true; break; }
+        if (!found)
+            tunnelMgr_.addTunnel(provName, proxyServer_.port());
+    }
+}
+
 void Application::setupCallbacks() {
     // Session panel: Refresh
     window_->sessionPanel()->setOnRefresh([this]() {
@@ -267,6 +281,7 @@ void Application::setupCallbacks() {
                 registerClaudeFds();
                 window_->tunnelPanel()->setServerPort(proxyServer_.port());
                 tunnelMgr_.updatePort(proxyServer_.port());
+                autoAddAvailableTunnels();
                 window_->tunnelPanel()->updateTunnels();
                 LOG_INFO("Proxy server started on port %d", proxyServer_.port());
                 LOG_INFO("Claude binary: %s", proxyServer_.claudeBinary().c_str());
@@ -339,17 +354,32 @@ void Application::setupCallbacks() {
                 case TunnelManager::TunnelInstance::Failed:    stateStr = "failed"; break;
                 case TunnelManager::TunnelInstance::Stopped:   stateStr = "stopped"; break;
             }
-            return {ti->publicUrl, stateStr, ti->fullLog, ti->localPort};
+            std::string shareUrl = ti->publicUrl;
+            if (!shareUrl.empty() && proxyServer_.state() == ProxyServer::State::Running
+                    && !proxyServer_.authToken().empty()) {
+                while (!shareUrl.empty() && shareUrl.back() == '/') shareUrl.pop_back();
+                shareUrl += "/?token=" + proxyServer_.authToken();
+            }
+            std::string logs = ti->fullLog;
+            if (logs.empty() && (ti->state == TunnelManager::TunnelInstance::Idle ||
+                                  ti->state == TunnelManager::TunnelInstance::Stopped)) {
+                logs = "Tunnel is ready. Click \342\226\266 Start to connect.\n";
+            }
+            return {shareUrl, stateStr, logs, ti->localPort};
         };
 
         auto info = makeInfo();
         TunnelDetailsDialog::show(t->providerName, info, makeInfo);
     });
 
-    // Tunnel panel: Copy URL
-    window_->tunnelPanel()->setOnCopyUrl([](const std::string& url) {
-        Fl::copy(url.c_str(), (int)url.size(), 1);
-        LOG_INFO("Copied to clipboard: %s", url.c_str());
+    // Tunnel panel: Copy URL (appends ?token= so the copied link is ready to use)
+    window_->tunnelPanel()->setOnCopyUrl([this](const std::string& url) {
+        std::string full = url;
+        const std::string& tok = proxyServer_.authToken();
+        if (!tok.empty())
+            full += "/?token=" + tok;
+        Fl::copy(full.c_str(), (int)full.size(), 1);
+        LOG_INFO("Copied to clipboard: %s", full.c_str());
     });
 
     tunnelMgr_.setOnUrlReady([this](int tunnelId, const std::string& url) {
@@ -404,6 +434,11 @@ void Application::wsServiceCb(void* data) {
     auto* app = (Application*)data;
     if (app->proxyServer_.state() == ProxyServer::State::Running) {
         app->proxyServer_.wsServer().service();
+        // Flush any buffered claude output so live events reach clients even if
+        // the Fl::add_fd callback fires late (e.g. on a quiet pipe).
+        for (auto& as : app->proxyServer_.activeSessions()) {
+            app->proxyServer_.onClaudeDataReady(as.sessionId);
+        }
     }
-    Fl::repeat_timeout(0.05, wsServiceCb, data); // 50ms — responsive HTTP serving
+    Fl::repeat_timeout(0.05, wsServiceCb, data); // 50ms
 }

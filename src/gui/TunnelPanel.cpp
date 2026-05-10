@@ -73,6 +73,12 @@ TunnelPanel::TunnelTable::hitTestAction(int R, int mx, int my,
     }
     bx += BTN_W + BTN_GAP;
 
+    // Copy URL (only when publicUrl is non-empty)
+    if (mx >= bx && mx < bx + BTN_W && my >= by && my < by + BTN_H) {
+        return r.publicUrl.empty() ? BtnNone : BtnCopyUrl;
+    }
+    bx += BTN_W + BTN_GAP;
+
     // Details (always available — shows logs even without URL)
     if (mx >= bx && mx < bx + BTN_W && my >= by && my < by + BTN_H) {
         return BtnDetails;
@@ -115,6 +121,9 @@ void TunnelPanel::TunnelTable::drawActionButtons(int R, int X, int Y, int W, int
 
     // Remove
     drawBtn("@1+", FL_BACKGROUND_COLOR, true);
+
+    // Copy URL (enabled only when URL is known)
+    drawBtn("URL", fl_rgb_color(220, 235, 255), !r.publicUrl.empty());
 
     // Details (always enabled — shows URL + logs)
     drawBtn("@menu", FL_BACKGROUND_COLOR, true);
@@ -206,6 +215,9 @@ int TunnelPanel::TunnelTable::handle(int event) {
                     return 1;
                 case BtnRemove:
                     if (panel_->onRemove_) panel_->onRemove_(tid);
+                    return 1;
+                case BtnCopyUrl:
+                    if (panel_->onCopyUrl_) panel_->onCopyUrl_(rows_[R].publicUrl);
                     return 1;
                 case BtnDetails:
                     if (panel_->onDetails_) panel_->onDetails_(tid);

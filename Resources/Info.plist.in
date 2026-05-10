@@ -34,6 +34,8 @@
 	<string>13.0</string>
 	<key>NSHighResolutionCapable</key>
 	<true/>
+	<key>LSUIElement</key>
+	<true/>
 	<key>CFBundleHelpBookFolder</key>
 	<string>HelpDocs</string>
 	<key>CFBundleHelpBookName</key>

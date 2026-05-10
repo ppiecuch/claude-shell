@@ -123,6 +123,7 @@ bool WebSocketServer::listen(int port) {
     int opt = 1;
     setsockopt(listenFd_, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
     setNonBlockingFd(listenFd_);
+    fcntl(listenFd_, F_SETFD, FD_CLOEXEC);
 
     struct sockaddr_in addr = {};
     addr.sin_family = AF_INET;
@@ -216,6 +217,7 @@ void WebSocketServer::acceptNewClient() {
     setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &one, sizeof(one));
     setsockopt(fd, SOL_SOCKET, SO_KEEPALIVE, &one, sizeof(one));
     setNonBlockingFd(fd);
+    fcntl(fd, F_SETFD, FD_CLOEXEC);
 
     auto client = std::make_unique<WsClient>();
     client->fd = fd;

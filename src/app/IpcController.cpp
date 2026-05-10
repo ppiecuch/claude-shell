@@ -64,9 +64,10 @@ bool IpcController::tryListen() {
         return false;
     }
 
-    // Set non-blocking
+    // Set non-blocking and close-on-exec
     int flags = fcntl(listenFd_, F_GETFL, 0);
     if (flags >= 0) fcntl(listenFd_, F_SETFL, flags | O_NONBLOCK);
+    fcntl(listenFd_, F_SETFD, FD_CLOEXEC);
 
     return true;
 }

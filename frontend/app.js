@@ -129,7 +129,7 @@ function handleMessage(msg) {
             renderSessionList();
             break;
 
-        case 'attached':
+        case 'attached': {
             attachedSessionId = msg.sessionId;
             updateSessionHighlight();
             const info = msg.sessionInfo || {};
@@ -137,9 +137,8 @@ function handleMessage(msg) {
                 `<strong>${info.name || msg.sessionId.substring(0, 8)}</strong> &mdash; ${info.cwd || ''}`;
             addSystemMessage(`Attached to session ${info.name || msg.sessionId.substring(0, 8)}`);
             if (currentRole === 'controller') enableInput();
-            // Request history
-            ws.send(JSON.stringify({ type: 'history_request' }));
             break;
+        }
 
         case 'detached':
             attachedSessionId = null;
@@ -155,8 +154,10 @@ function handleMessage(msg) {
             break;
 
         case 'history':
-            if (msg.events) {
+            if (msg.events && msg.events.length > 0) {
                 document.getElementById('messages').innerHTML = '';
+                currentAssistantDiv = null;
+                currentAssistantText = '';
                 for (const ev of msg.events) {
                     if (ev.event) handleClaudeEvent(ev.event, ev.sessionId);
                 }
@@ -202,6 +203,24 @@ function handleClaudeEvent(event, sessionId) {
     if (!event || !event.type) return;
 
     switch (event.type) {
+        case 'user': {
+            currentAssistantDiv = null;
+            const msg = event.message;
+            if (!msg) break;
+            let text = '';
+            const toolResults = [];
+            if (typeof msg.content === 'string') {
+                text = msg.content;
+            } else if (Array.isArray(msg.content)) {
+                for (const block of msg.content) {
+                    if (block.type === 'text') text += block.text;
+                    else if (block.type === 'tool_result') toolResults.push(block);
+                }
+            }
+            if (text) addUserMessage(text);
+            for (const tr of toolResults) addToolResultMessage(tr);
+            break;
+        }
         case 'assistant':
             handleAssistantEvent(event);
             break;
@@ -224,37 +243,38 @@ function handleClaudeEvent(event, sessionId) {
 }
 
 function handleAssistantEvent(event) {
-    // Extract text content from the message
     let text = '';
+    const toolUses = [];
     if (event.message) {
-        if (typeof event.message === 'string') {
-            text = event.message;
-        } else if (event.message.content) {
-            if (typeof event.message.content === 'string') {
-                text = event.message.content;
-            } else if (Array.isArray(event.message.content)) {
-                for (const block of event.message.content) {
-                    if (block.type === 'text') text += block.text;
-                }
+        const src = typeof event.message === 'string' ? { content: event.message } : event.message;
+        if (typeof src.content === 'string') {
+            text = src.content;
+        } else if (Array.isArray(src.content)) {
+            for (const block of src.content) {
+                if (block.type === 'text') text += block.text;
+                else if (block.type === 'tool_use') toolUses.push(block);
             }
         }
     }
 
-    if (!text) return;
+    if (!text && toolUses.length === 0) return;
 
-    if (currentAssistantDiv) {
-        // Append to existing streaming message
+    const hasTools = toolUses.length > 0;
+
+    if (!hasTools && currentAssistantDiv) {
+        // Streaming text append
         currentAssistantText += text;
         currentAssistantDiv.querySelector('.message-body').innerHTML =
             renderMarkdown(currentAssistantText);
     } else {
-        // New assistant message
         currentAssistantText = text;
         const div = document.createElement('div');
         div.className = 'message message-assistant';
-        div.innerHTML = `<div class="message-label">Claude</div><div class="message-body">${renderMarkdown(text)}</div>`;
+        let body = renderMarkdown(text);
+        for (const tu of toolUses) body += renderToolUse(tu);
+        div.innerHTML = `<div class="message-label">Claude</div><div class="message-body">${body}</div>`;
         document.getElementById('messages').appendChild(div);
-        currentAssistantDiv = div;
+        currentAssistantDiv = hasTools ? null : div;
     }
     scrollToBottom();
 }
@@ -263,7 +283,46 @@ function addUserMessage(content) {
     currentAssistantDiv = null;
     const div = document.createElement('div');
     div.className = 'message message-user';
-    div.innerHTML = `<div class="message-label">You</div><div class="message-body">${escapeHtml(content)}</div>`;
+    div.innerHTML = `<div class="message-label">You</div><div class="message-body">${renderMarkdown(content)}</div>`;
+    document.getElementById('messages').appendChild(div);
+    scrollToBottom();
+}
+
+function truncatePreview(text, keep = 3) {
+    const lines = text.split('\n');
+    if (lines.length <= keep * 2 + 1) return escapeHtml(text);
+    const first = lines.slice(0, keep).map(l => escapeHtml(l)).join('\n');
+    const last  = lines.slice(-keep).map(l => escapeHtml(l)).join('\n');
+    const hidden = lines.length - keep * 2;
+    return `${first}\n<span class="tool-ellipsis">… ${hidden} lines …</span>\n${last}`;
+}
+
+function renderCollapsible(label, fullText) {
+    const preview = truncatePreview(fullText);
+    const full = escapeHtml(fullText);
+    return `<details class="tool-block">
+        <summary>${escapeHtml(label)}</summary>
+        <pre class="tool-preview-lines">${preview}</pre>
+        <pre class="tool-full-output">${full}</pre>
+    </details>`;
+}
+
+function renderToolUse(block) {
+    const name = block.name || 'tool';
+    const input = block.input || {};
+    const cmd = input.command || input.file_path || input.path || input.url
+              || (Object.values(input)[0] !== undefined ? String(Object.values(input)[0]) : '');
+    const label = `⚙ ${name}${cmd ? ': ' + cmd.slice(0, 80) : ''}`;
+    return renderCollapsible(label, JSON.stringify(input, null, 2));
+}
+
+function addToolResultMessage(block) {
+    const content = block.content || '';
+    const text = typeof content === 'string' ? content : JSON.stringify(content, null, 2);
+    const lineCount = text.split('\n').length;
+    const div = document.createElement('div');
+    div.className = 'message-tool-result';
+    div.innerHTML = renderCollapsible(`↩ Result (${lineCount} lines)`, text);
     document.getElementById('messages').appendChild(div);
     scrollToBottom();
 }
@@ -271,22 +330,26 @@ function addUserMessage(content) {
 function addToolMessage(type, event) {
     const div = document.createElement('div');
     div.className = 'message message-tool';
-    let label = type;
-    let body = '';
 
+    let label, fullText;
     if (type === 'tool_use') {
-        label = `Tool: ${event.name || 'unknown'}`;
-        body = `<pre>${escapeHtml(JSON.stringify(event.input || event, null, 2))}</pre>`;
+        const name = event.name || 'tool';
+        const input = event.input || event;
+        const cmd = input.command || input.file_path || input.path || input.url
+                  || (Object.values(input)[0] !== undefined ? String(Object.values(input)[0]) : '');
+        label = `⚙ ${name}${cmd ? ': ' + cmd.slice(0, 80) : ''}`;
+        fullText = JSON.stringify(input, null, 2);
     } else if (type === 'tool_result') {
-        label = 'Tool Result';
         const content = event.content || event.output || '';
-        body = `<pre>${escapeHtml(typeof content === 'string' ? content : JSON.stringify(content, null, 2))}</pre>`;
+        const text = typeof content === 'string' ? content : JSON.stringify(content, null, 2);
+        label = `↩ Result (${text.split('\n').length} lines)`;
+        fullText = text;
     } else {
         label = type;
-        body = `<pre>${escapeHtml(JSON.stringify(event, null, 2))}</pre>`;
+        fullText = JSON.stringify(event, null, 2);
     }
 
-    div.innerHTML = `<div class="message-label">${escapeHtml(label)}</div><div class="message-body">${body}</div>`;
+    div.innerHTML = renderCollapsible(label, fullText);
     document.getElementById('messages').appendChild(div);
     scrollToBottom();
 }
@@ -451,20 +514,91 @@ function escapeHtml(text) {
 }
 
 function renderMarkdown(text) {
-    // Minimal markdown: code blocks, inline code, bold, newlines
-    let html = escapeHtml(text);
+    if (!text) return '';
 
-    // Code blocks: ```...```
-    html = html.replace(/```(\w*)\n([\s\S]*?)```/g, '<pre><code>$2</code></pre>');
+    // 1. Pull out fenced code blocks before touching anything else.
+    const fences = [];
+    text = text.replace(/```([^\n]*)\n?([\s\S]*?)```/g, (_, lang, code) => {
+        const idx = fences.length;
+        const attr = lang.trim() ? ` class="language-${escapeHtml(lang.trim())}"` : '';
+        fences.push(`<pre><code${attr}>${escapeHtml(code.replace(/\n$/, ''))}</code></pre>`);
+        return `\x00F${idx}\x00`;
+    });
 
-    // Inline code: `...`
-    html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
+    // Inline transforms on a safe (already-escaped) string.
+    function inline(s) {
+        s = escapeHtml(s);
+        s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+        s = s.replace(/\*([^*\n]+)\*/g,   '<em>$1</em>');
+        s = s.replace(/`([^`]+)`/g,        '<code>$1</code>');
+        return s;
+    }
 
-    // Bold: **...**
-    html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    // 2. Process line by line.
+    const lines = text.split('\n');
+    let html = '';
+    let listTag = '';
 
-    // Newlines
-    html = html.replace(/\n/g, '<br>');
+    function closeList() {
+        if (listTag) { html += `</${listTag}>`; listTag = ''; }
+    }
+
+    for (const line of lines) {
+        // Fence placeholder — restore verbatim.
+        if (/\x00F\d+\x00/.test(line)) {
+            closeList();
+            html += line.replace(/\x00F(\d+)\x00/g, (_, i) => fences[+i]);
+            continue;
+        }
+
+        // Blank line ends lists, adds breathing room.
+        if (!line.trim()) {
+            closeList();
+            html += '<br>';
+            continue;
+        }
+
+        // ATX headers.
+        const hm = line.match(/^(#{1,3})\s+(.*)/);
+        if (hm) {
+            closeList();
+            const lvl = hm[1].length;
+            html += `<h${lvl} class="md-h">${inline(hm[2])}</h${lvl}>`;
+            continue;
+        }
+
+        // Horizontal rule.
+        if (/^[-*_]{3,}$/.test(line.trim())) {
+            closeList();
+            html += '<hr>';
+            continue;
+        }
+
+        // Unordered list.
+        const ulm = line.match(/^(\s*)[-*+]\s+(.*)/);
+        if (ulm) {
+            if (listTag !== 'ul') { closeList(); html += '<ul>'; listTag = 'ul'; }
+            html += `<li>${inline(ulm[2])}</li>`;
+            continue;
+        }
+
+        // Ordered list.
+        const olm = line.match(/^(\s*)\d+[.)]\s+(.*)/);
+        if (olm) {
+            if (listTag !== 'ol') { closeList(); html += '<ol>'; listTag = 'ol'; }
+            html += `<li>${inline(olm[2])}</li>`;
+            continue;
+        }
+
+        // Normal line — close any open list, emit with line break.
+        closeList();
+        html += inline(line) + '<br>';
+    }
+
+    closeList();
+
+    // Remove trailing lone <br>.
+    html = html.replace(/(<br>)+$/, '');
 
     return html;
 }

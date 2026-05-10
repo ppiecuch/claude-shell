@@ -63,6 +63,10 @@ ProxyPanel::ProxyPanel(int x, int y, int w, int h)
     copyUrlBtn_->deactivate();
     openTestBtn_->deactivate();
 
+    int spacerY = ly + btnH + 10;
+    Fl_Box* spacer = new Fl_Box(x, spacerY, w, y + h - spacerY);
+    resizable(spacer);
+
     end();
 }
 

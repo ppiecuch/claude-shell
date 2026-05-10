@@ -33,6 +33,19 @@ inline std::string claudeSessionsDir() {
     return homeDir() + "/.claude/sessions";
 }
 
+inline std::string claudeProjectsDir() {
+    return homeDir() + "/.claude/projects";
+}
+
+// Returns the path to the conversation JSONL for a given session.
+// Claude encodes the cwd by replacing every non-alphanumeric character with '-'.
+inline std::string sessionJsonlPath(const std::string& cwd, const std::string& sessionId) {
+    std::string encoded;
+    for (unsigned char c : cwd)
+        encoded += std::isalnum(c) ? (char)c : '-';
+    return claudeProjectsDir() + "/" + encoded + "/" + sessionId + ".jsonl";
+}
+
 inline bool isProcessAlive(int pid) {
 #ifdef _WIN32
     HANDLE h = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, pid);

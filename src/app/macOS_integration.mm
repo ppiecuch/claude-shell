@@ -75,9 +75,15 @@ static NSMenuItem *g_serverMenuItem = nil;
 - (void)toggleServer:(id)sender {
     bool running = g_isServerRunning ? g_isServerRunning() : false;
     if (running && g_onStopServer) {
-        Fl::awake([](void*) { g_onStopServer(); }, nullptr);
+        dispatch_async(dispatch_get_main_queue(), ^{
+            g_onStopServer();
+            Fl::awake();
+        });
     } else if (!running && g_onStartServer) {
-        Fl::awake([](void*) { g_onStartServer(); }, nullptr);
+        dispatch_async(dispatch_get_main_queue(), ^{
+            g_onStartServer();
+            Fl::awake();
+        });
     }
 }
 
